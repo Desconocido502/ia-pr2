@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Learning Project</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body class="bg-light">
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Machine Learning Project</h1>
+        <div class="card p-4 shadow-sm">
+
+            <!-- Selector de modelo de Machine Learning -->
+            <div class="form-group">
+                <label for="model-select">Selecciona un modelo de ML:</label>
+                <select id="model-select" class="form-control">
+                    <optgroup label="Regresión Lineal">
+                        <option value="linear-regression">Linear Regression</option>
+                    </optgroup>
+                    <optgroup label="Regresión Polinomial">
+                        <option value="polynomial-regression">Polynomial Regression</option>
+                    </optgroup>
+                    <optgroup label="Árbol de Decisión">
+                        <option value="decision-tree">Decision Tree</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Parámetros de configuración -->
+            <div class="form-group">
+                <label for="train-test-split">Porcentaje de Datos de Entrenamiento:</label>
+                <input type="number" id="train-test-split" class="form-control" value="70" min="10" max="90">
+            </div>
+
+            <div class="form-group">
+                <label for="prediction-range">Rango para Nueva Predicción (X):</label>
+                <input type="text" id="prediction-range" class="form-control" placeholder="Ej. 10, 20, 30">
+            </div>
+
+            <!-- Selección de archivo CSV -->
+            <div class="form-group">
+                <label for="file-input">Cargar archivo CSV:</label>
+                <input type="file" id="file-input" class="form-control-file" accept=".csv">
+            </div>
+
+            <!-- Botones para operaciones -->
+            <button id="train-button" class="btn btn-primary mt-3" onclick="trainModel()">Entrenar Modelo</button>
+            <button id="predict-button" class="btn btn-secondary mt-3" onclick="makePrediction()">Hacer
+                Predicción</button>
+
+            <!-- Información de entrenamiento y predicción -->
+            <div id="logRS" class="mt-4 p-3 bg-white border rounded"></div>
+
+            <!-- Gráfico o visualización del Árbol -->
+            <div class="mt-4" id="chart-container">
+                <canvas id="chart_divRS" style="display: none;"></canvas>
+                <div id="tree" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts cargados al final del body -->
+    <script src="linear-regression.js"></script>
+    <script src="polynomial-regression.js"></script>
+    <!-- <script src="decision-tree.js"></script> -->
+    <!-- Código de main.js integrado directamente en index.html -->
+    <script>
+        let xTrain = [];
+        let yTrain = [];
+        let xToPredict = [];
+        let model;
+
+        // Función para limpiar datos al cambiar de modelo
+        function resetModel() {
+            xTrain = [];
+            yTrain = [];
+            xToPredict = [];
+            model = null;
+            document.getElementById("logRS").innerHTML = "";
+            document.getElementById("chart_divRS").style.display = "none";
+            document.getElementById("tree").style.display = "none";
+            if (window.myChart) {
+                window.myChart.destroy();
+            }
+
+            // Muestra el selector de grado si es una regresión polinomial
+            const modelType = document.getElementById("model-select").value;
+            document.getElementById("degree-select-group").style.display = modelType === "polynomial-regression" ? "block" : "none";
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("file-input").addEventListener("change", handleFileUpload);
+            document.getElementById("model-select").addEventListener("change", resetModel);
+
+            // Otros eventos e inicializaciones
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const csvData = e.target.result;
+                    loadModelData(csvData);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Parseo del CSV
+        function parseCSVData(data) {
+            const modelType = document.getElementById("model-select").value;
+            console.log("modelType: ", modelType);
+            const lines = data.trim().split('\n').slice(1);
+
+            if (modelType == "linear-regression") {
+                lines.forEach(line => {
+                    const [x, y] = line.split(';').map(parseFloat);
+                    xTrain.push(x);
+                    yTrain.push(y);
+                });
+                console.log("XTrain:", xTrain);
+                console.log("YTrain:", yTrain);
+            }
+        }
+
+    </script>
+</body>
+
+</html>
