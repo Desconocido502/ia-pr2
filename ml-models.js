@@ -1346,3 +1346,5 @@ class LinearKMeans {
         return [res.mean, res.variance]
     }
 }
+
+//esto es un comentario extra
