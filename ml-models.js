@@ -16,6 +16,14 @@ let arrTraining = [];
 let arrNR = [];
 //-----------------------------------------------------
 
+//-------------------Neuronal Network------------------
+let clusters; //number
+let trainingData; // array of numbers
+let iterations; //number
+
+//-----------------------------------------------------
+
+
 // Función para limpiar datos al cambiar de modelo
 function resetModel() {
     xTrain = [];
@@ -95,6 +103,21 @@ function parseCSVData(data) {
         arrNR = lines[0].split(',').map(Number); // Convierte cada valor a entero
 
         console.log("arrNR:", arrNR);
+    } else if (modelType === "k-means-linear") {
+        lines.forEach(line => {
+            const [numeroClusters, entrenamiento, numeroIteraciones] = line.split(';');
+
+            // Convertimos `NumeroClusters` y `NumeroIteraciones` a enteros
+            clusters = parseInt(numeroClusters, 10);
+            iterations = parseInt(numeroIteraciones, 10);
+
+            // Convertimos `Entrenamiento` en un arreglo de números
+            trainingData = entrenamiento.split(',').map(Number);
+
+            console.log("Numero de Clusters:", clusters);
+            console.log("Entrenamiento:", trainingData);
+            console.log("Numero de Iteraciones:", iterations);
+        });
     }
 
 }
@@ -480,6 +503,86 @@ function drawChart(xTrain, yTrain, yPredict) {
         data: data,
         options: options
     });
+}
+
+// Gráfico K-means usando Chart.js
+function drawChartKmeans(clusterized_data, clusters) {
+    const ctx = document.getElementById('chart_divRS').getContext('2d');
+
+    if (window.myChart) {
+        window.myChart.destroy();
+    }
+
+    // Datos para los puntos de cada cluster y sus centroides
+    const datasets = [];
+
+    // Agregar cada cluster con puntos de color diferente
+    clusters.forEach((cluster, index) => {
+        const clusterPoints = clusterized_data
+            .filter(point => point[1] === cluster[0])
+            .map(point => ({ x: point[0], y: 0 })); // Ajuste para graficar en eje X únicamente
+
+        datasets.push({
+            label: `Cluster ${index + 1}`,
+            data: clusterPoints,
+            backgroundColor: cluster[1], // Color asignado al cluster
+            pointRadius: 5,
+            type: 'scatter'
+        });
+
+        // Agregar los centroides de cada cluster
+        datasets.push({
+            label: `Centroide ${index + 1}`,
+            data: [{ x: cluster[0], y: 0 }],
+            backgroundColor: '#ff0000', // Color para centroides
+            pointStyle: 'rect',
+            pointRadius: 6,
+            type: 'scatter'
+        });
+    });
+
+    // Configuración del gráfico
+    const options = {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: { title: { display: true, text: 'X' } },
+            y: { title: { display: true, text: 'Y' }, min: -1, max: 1 }
+        }
+    };
+
+    // Crear y dibujar el gráfico
+    window.myKmeansChart = new Chart(ctx, {
+        type: 'scatter',
+        data: { datasets },
+        options: options
+    });
+
+}
+
+function makePatterns() {
+    //clusters;
+    //trainingData;
+    //iterations;
+
+    if (trainingData.length < clusters) {
+        alert(`El numero de clusters (${clusters}) no puede ser menor a la cantidad de datos (${trainingData.length})`)
+    }
+
+    var kmeans = new LinearKMeans(clusters, trainingData)
+    let clusterized_data = kmeans.clusterize(clusters, trainingData, iterations);
+
+    let clusters_x = new Set([...clusterized_data.map(a => a[1])]);
+
+    clusters_x = Array.from(clusters_x);
+
+    clusters_x.forEach((cluster, i) => {
+        clusters_x[i] = [cluster, "#000000".replace(/0/g, function () { return (~~(Math.random() * 16)).toString(16); })]
+    });
+
+    drawChartKmeans(clusterized_data, clusters_x);
 }
 
 class NodeTree {
@@ -1087,3 +1190,159 @@ class NeuralNetwork {
 
 }
 //----------------------------------
+
+//----------------k-means-linear------------------
+class LinearKMeans {
+    constructor() {
+        this.k = 3
+        this.data = []
+    }
+
+    clusterize(k, data, iterations) {
+        //console.log(iterations)
+        let clusters_proposals = []
+        this.data = data
+        //console.log(k, data)
+
+        for (let i = 0; i < iterations; i++) {
+            let clusters = []
+
+
+            //pendiente agregar iterations
+            //let copy_data = [...this.data]
+            for (let i = 0; i < k; i++) {
+                let c = data[Math.floor(Math.random() * data.length)]
+                while (clusters.findIndex(x => x === c) != -1) {
+                    c = data[Math.floor(Math.random() * data.length)]
+                }
+                clusters.push(c)
+            }
+
+            clusters = clusters.sort(function (a, b) { return (a > b) ? 1 : ((b > a) ? -1 : 0); })
+            //console.log('Clusters: ', clusters)
+
+            //distancias [punto,cluster,distancia]
+            let distances = []
+            let clustered_data = []
+            let closer_cluster = 0, closer_distance = 0, first_distance = true;
+            data.forEach(point => {
+                closer_cluster = 0, closer_distance = 0, first_distance = true;
+
+                clusters.forEach(c => {
+                    let distance = this.distance(point, c)
+                    if (first_distance) {
+                        closer_distance = Math.abs(distance)
+                        closer_cluster = c
+                        first_distance = !first_distance
+                    } else {
+                        if (Math.abs(distance) < closer_distance) {
+                            closer_distance = Math.abs(distance)
+                            closer_cluster = c
+                        }
+
+                    }
+                    distances.push([point, c, distance])
+
+
+                })
+                clustered_data.push([point, closer_cluster, closer_distance])
+            });
+
+
+            //calcular medias y varianza
+
+            let previous_cluster_stats = []
+            let total_variance = 0
+            let cluster_stats = []
+            do {
+                previous_cluster_stats = cluster_stats
+                cluster_stats = []
+                total_variance = 0
+                // [mean,variance]
+                clusters.forEach((c, i) => {
+                    let data = clustered_data.filter((cd) => cd[1] == c)
+                    let data_points = data.map((dp) => dp[0])
+                    cluster_stats.push(this.calculateMeanVariance(data_points))
+                    total_variance += data_points[1]
+                    clusters[i] = cluster_stats[i][0]
+                });
+
+                if (Number.isNaN(total_variance)) {
+                    total_variance = 0
+                }
+
+
+                // Recalcular distancias y agrupaciones
+
+                distances = []
+                clustered_data = []
+                closer_cluster = 0, closer_distance = 0, first_distance = true;
+                data.forEach(point => {
+                    closer_cluster = 0, closer_distance = 0, first_distance = true;
+
+                    clusters.forEach(c => {
+                        let distance = this.distance(point, c)
+                        if (first_distance) {
+                            closer_distance = Math.abs(distance)
+                            closer_cluster = c
+                            first_distance = !first_distance
+                        } else {
+                            if (Math.abs(distance) < closer_distance) {
+                                closer_distance = Math.abs(distance)
+                                closer_cluster = c
+                            }
+
+                        }
+                        distances.push([point, c, distance])
+
+                    })
+                    clustered_data.push([point, closer_cluster, closer_distance])
+
+
+                });
+
+                //console.log(clusters)
+                //console.table(clustered_data)
+            } while (JSON.stringify(previous_cluster_stats) != JSON.stringify(cluster_stats))
+            clusters_proposals.push([total_variance, clusters, clustered_data])
+        }
+
+        // Posibles clusters
+        // console.log(clusters_proposals)
+
+        clusters_proposals.sort(function (a, b) { return (a[0] > b[0]) ? 1 : ((b[0] > a[0]) ? -1 : 0); })
+        //console.table(distances)
+
+
+        return clusters_proposals[0][2]
+
+    }
+
+    distance(point_a, point_b) {
+        return point_b - point_a
+    }
+
+    calculateMeanVariance(arr) {
+
+        function getVariance(arr, mean) {
+            return arr.reduce(function (pre, cur) {
+                pre = pre + Math.pow((cur - mean), 2);
+                return pre;
+            }, 0)
+        }
+
+        var meanTot = arr.reduce(function (pre, cur) {
+            return pre + cur;
+        })
+
+        var total = getVariance(arr, meanTot / arr.length);
+
+        var res = {
+            mean: meanTot / arr.length,
+            variance: total / arr.length
+        }
+
+
+        return [res.mean, res.variance]
+    }
+}
