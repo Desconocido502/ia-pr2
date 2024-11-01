@@ -28,6 +28,9 @@
           <optgroup label="Árbol de Decisión">
             <option value="decision-tree">Decision Tree</option>
           </optgroup>
+          <optgroup label="Red neuronal">
+            <option value="neuronal-network">Neuronal Network</option>
+          </optgroup>
         </select>
       </div>
 
@@ -38,12 +41,12 @@
       </div>
 
       <!-- Parámetros de configuración -->
-      <div class="form-group">
+      <div class="form-group" id="percent-select-group" style="display: none;">
         <label for="train-test-split">Porcentaje de Datos de Entrenamiento:</label>
         <input type="number" id="train-test-split" class="form-control" value="70" min="10" max="90">
       </div>
 
-      <div class="form-group">
+      <div class="form-group" >
         <label for="prediction-range">Rango para Nueva Predicción (X):</label>
         <input type="text" id="prediction-range" class="form-control" placeholder="Ej. 10, 20, 30">
       </div>
