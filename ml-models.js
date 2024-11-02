@@ -118,8 +118,33 @@ function parseCSVData(data) {
             console.log("Entrenamiento:", trainingData);
             console.log("Numero de Iteraciones:", iterations);
         });
-    }
+    } else if (modelType === "k-nearest-neighbor") {
+        // Leer la segunda línea (de datos)
+         const values = lines[0];
+        console.log(lines[0]);
+        //const [entrenamiento, punto, euclideano, manhattan] = lines[0].split(';').map(item => item.trim());
+        // Expresión regular para capturar los contenidos entre comillas
+        const regex = /"([^"]*)"/g;
+        let matches;
+        const results = [];
 
+        // Buscar y almacenar todos los valores que están entre comillas
+        while ((matches = regex.exec(values)) !== null) {
+            results.push(matches[1]); // Agregar el contenido dentro de las comillas
+        }
+
+        // Asegurarnos de que tenemos exactamente 4 valores
+        if (results.length === 4) {
+            const [entrenamientoValue, puntoValue, euclideanoValue, manhattanValue] = results;
+
+            console.log("Entrenamiento:", entrenamientoValue);
+            console.log("Punto:", puntoValue);
+            console.log("Euclideano:", euclideanoValue);
+            console.log("Manhattan:", manhattanValue);
+        } else {
+            console.log("Error: No se encontraron exactamente 4 valores entre comillas.");
+        }
+    }
 }
 
 // Clase de Regresión Lineal
@@ -563,26 +588,33 @@ function drawChartKmeans(clusterized_data, clusters) {
 }
 
 function makePatterns() {
-    //clusters;
-    //trainingData;
-    //iterations;
+    //k-nearest-neighbor
+    const modelType = document.getElementById("model-select").value;
+    console.log("modelType: ", modelType);
 
-    if (trainingData.length < clusters) {
-        alert(`El numero de clusters (${clusters}) no puede ser menor a la cantidad de datos (${trainingData.length})`)
+    if (modelType === "k-means-linear") {
+        if (trainingData.length < clusters) {
+            alert(`El numero de clusters (${clusters}) no puede ser menor a la cantidad de datos (${trainingData.length})`)
+        }
+
+        var kmeans = new LinearKMeans(clusters, trainingData)
+        let clusterized_data = kmeans.clusterize(clusters, trainingData, iterations);
+
+        let clusters_x = new Set([...clusterized_data.map(a => a[1])]);
+
+        clusters_x = Array.from(clusters_x);
+
+        clusters_x.forEach((cluster, i) => {
+            clusters_x[i] = [cluster, "#000000".replace(/0/g, function () { return (~~(Math.random() * 16)).toString(16); })]
+        });
+
+        drawChartKmeans(clusterized_data, clusters_x);
+    } else if (modelType === "k-nearest-neighbor") {
+        console.log("modelType: 2", modelType);
+
+
     }
 
-    var kmeans = new LinearKMeans(clusters, trainingData)
-    let clusterized_data = kmeans.clusterize(clusters, trainingData, iterations);
-
-    let clusters_x = new Set([...clusterized_data.map(a => a[1])]);
-
-    clusters_x = Array.from(clusters_x);
-
-    clusters_x.forEach((cluster, i) => {
-        clusters_x[i] = [cluster, "#000000".replace(/0/g, function () { return (~~(Math.random() * 16)).toString(16); })]
-    });
-
-    drawChartKmeans(clusterized_data, clusters_x);
 }
 
 class NodeTree {
